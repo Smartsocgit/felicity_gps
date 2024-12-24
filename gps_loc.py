@@ -97,3 +97,7 @@ while True:
     data = ser.readline().decode('utf-8')
     parseGPS(data)
     sleep(2)
+
+# After the loop ends, restart the systemd service
+print("All data received, restarting systemd service...")
+os.system("sudo systemctl restart aikaan")
