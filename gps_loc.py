@@ -1,4 +1,5 @@
 from time import sleep, time
+sleep(120)
 import serial
 import os
 
@@ -9,11 +10,11 @@ shell_script_path = "/opt/aikaan/scripts/gps-location.sh"  # Path to the shell s
 def parseGPS(data):
     if data[0:6] == "$GPRMC":
         sdata = data.split(",")
-        
+
         # Check for valid GPS data (if V is found, it means no GPS data is available)
         if sdata[2] == 'V':
             print("\nNo satellite data available.\n")
-            return
+            return False
 
         # Parse latitude and longitude data
         lat = decode(sdata[3])  # Latitude
@@ -34,9 +35,9 @@ def parseGPS(data):
 
         # Write the data to the shell script
         write_to_shell_script(lat_value, lon_value)
+        return True  # Indicate successful GPS data parsing
 
-        # Exit the script after writing the data
-        exit(0)
+    return False
 
 def decode(coord):
     # Converts DDDMM.MMMMM -> DD deg MM.MMMMM min
@@ -52,28 +53,40 @@ def write_to_shell_script(lat, lon):
     try:
         with open(shell_script_path, 'r+') as file:
             lines = file.readlines()
-            
+
             # Modify the 'lat' and 'lon' lines
             for i, line in enumerate(lines):
                 if line.startswith("echo lat="):
                     lines[i] = f"echo lat={lat}\n"
                 elif line.startswith("echo lon="):
                     lines[i] = f"echo lon={lon}\n"
-            
+
             # Go back to the beginning of the file and rewrite it
             file.seek(0)
             file.writelines(lines)
             file.truncate()  # Ensure the file is truncated if it was previously larger
-            
+
         print(f"Shell script updated at {shell_script_path}")
     except Exception as e:
         print(f"Error updating shell script: {e}")
 
+def stop_gps():
+    try:
+        with serial.Serial(portwrite, baudrate=115200, timeout=1, rtscts=True, dsrdtr=True) as serw:
+            serw.write('AT+QGPSEND\r'.encode())  # Changed command to AT+QGPSEND
+            response = serw.read(64).decode('utf-8')
+            print(f"GPS stop response: {response}")
+            if "OK" in response:
+                print("GPS module stopped successfully.")
+            else:
+                print("Failed to stop GPS module.")
+    except Exception as e:
+        print("Error while stopping GPS module:", e)
+
 print("Connecting Port..")
 try:
-    serw = serial.Serial(portwrite, baudrate=115200, timeout=1, rtscts=True, dsrdtr=True)
-    serw.write('AT+QGPS=1\r'.encode())
-    serw.close()
+    with serial.Serial(portwrite, baudrate=115200, timeout=1, rtscts=True, dsrdtr=True) as serw:
+        serw.write('AT+QGPS=1\r'.encode())
     sleep(1)
 except Exception as e:
     print("Serial port connection failed.")
@@ -89,15 +102,16 @@ ser = serial.Serial(port, baudrate=115200, timeout=0.5, rtscts=True, dsrdtr=True
 while True:
     current_time = time()
     elapsed_time = current_time - start_time
-    
+
     if elapsed_time > 3600:
         print("60 minutes elapsed, stopping the script.")
         break  # Exit the loop after 60 minutes
 
     data = ser.readline().decode('utf-8')
-    parseGPS(data)
-    sleep(2)
+    success = parseGPS(data)
 
-# After the loop ends, restart the systemd service
-print("All data received, restarting systemd service...")
-os.system("sudo systemctl restart aikaan")
+    if success:
+        stop_gps()
+        break  # Exit the loop after successfully writing data and stopping GPS
+
+    sleep(2)
