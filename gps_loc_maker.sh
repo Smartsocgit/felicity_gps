@@ -10,8 +10,8 @@ SHELL_SCRIPT_PATH="/opt/aikaan/scripts/gps-location.sh"
 # Create the shell script with the initial content
 cat << EOF > $SHELL_SCRIPT_PATH
 #!/bin/sh
-echo lat=26.002258133942785
-echo lon=92.8513598078571
+echo lat=00.000000
+echo lon=00.000000
 EOF
 
 # Make the shell script executable and give read and write permissions
