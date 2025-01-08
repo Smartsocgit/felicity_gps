@@ -1,6 +1,7 @@
 git clone https://github.com/Smartsocgit/felicity_gps.git
 
-cd felicity_gps
-chmod +x setup.sh
-sudo ./setup.sh
-sudo systemctl restart aikaan.
+1. cd felicity_gps
+2. pip install pyserial
+3. sudo chmod +x setup.sh
+4. sudo ./setup.sh
+5. sudo systemctl restart aikaan.
