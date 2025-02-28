@@ -1,0 +1,55 @@
+Here’s how you can set up a shell script and a systemd service to run these commands on boot.
+
+Shell Script (gpio_setup.sh)
+Create a script in /usr/local/bin/gpio_setup.sh:
+
+sh
+Copy
+Edit
+#!/bin/bash
+
+echo 194 > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio194/direction
+echo 0 > /sys/class/gpio/gpio194/value
+Make it executable:
+
+sh
+Copy
+Edit
+chmod +x /usr/local/bin/gpio_setup.sh
+Systemd Service File (gpio_setup.service)
+Create a systemd service file at /etc/systemd/system/gpio_setup.service:
+
+ini
+Copy
+Edit
+
+
+[Unit]
+Description=GPIO 194 Setup
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gpio_setup.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+
+Enable and Start the Service
+sh
+Copy
+Edit
+sudo systemctl daemon-reload
+sudo systemctl enable gpio_setup.service
+sudo systemctl start gpio_setup.service
+This will ensure the script runs at boot and sets up GPIO 194.
+
+
+
+
+
+
+
